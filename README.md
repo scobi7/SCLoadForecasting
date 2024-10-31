@@ -21,10 +21,15 @@ SCLoadForecasting analyzes historical weather data—temperature, humidity, wind
 
 ## Project Steps
 
-- **Data Loading**: Scrape data from AES's power usage in Dayton Ohio. Then scrape the weather of Dayton area. Combine into one CSV file
+- **Data Scraping**: Scrape data from AES's power usage in Dayton Ohio. Then scrape the weather of Dayton area. Combine into one CSV file
 - **Data Format**: datetime,temperature,precipitation,humidity,wind_speed,dayton_mw
+- **Data Loading**: Create dataloader that has a current time step, a target time step which will be 1 hour in the future from the current time step with a look back of 5 steps. 
+
+We can load x as (t-4, ... t-1, t) -> y or (t+1) and so on. Tensor format will be x of the data columns (weather, temp, etc) and y will be target data
+
 - **Define a build the model**: Define an effecient SNN model for time series load forecasting. RNNs and LSTMs may be a good option.
 - **Train your data**: Create a training and testing data set. 80% of the data can be training where you run and train your model. Then you can test your results against the actual results from the testing data set. 
+
 
 
 
