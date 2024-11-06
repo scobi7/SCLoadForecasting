@@ -31,6 +31,10 @@ We can load x as (t-4, ... t-1, t) -> y or (t+1) and so on. Tensor format will b
 - **Train your data**: Create a training and testing data set. 80% of the data can be training where you run and train your model. Then you can test your results against the actual results from the testing data set. 
 
 
+***maltplotlib and train on a simple RNN
+***train with a batch size of 1
+    figure out offset
+    figure out if i can use dayton_mw to predict the next dayton_mw
 
 
 
