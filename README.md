@@ -35,6 +35,9 @@ We can load x as (t-4, ... t-1, t) -> y or (t+1) and so on. Tensor format will b
 ***train with a batch size of 1
     figure out offset
     figure out if i can use dayton_mw to predict the next dayton_mw
+    fix loading
+    add layers
+    
 
 
 

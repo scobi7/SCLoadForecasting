@@ -7,6 +7,7 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
+import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
 
 import numpy as np
@@ -44,16 +45,6 @@ def create_time_series_dataset(data, lookback_window, forecasting_horizon=1, tes
     X_test = torch.tensor(X_test, dtype=torch.float32)
     y_test = torch.tensor(y_test, dtype=torch.float32)
 
-    # Print tensor shapes and first tensor samples after splitting
-    #print("Shape of X_train:", X_train.shape)       # Expected: (num_train_samples, lookback_window, num_features)
-    #print("Sample X_train (first tensor):", X_train[0])  # Prints first input tensor in training set
-    #print("Shape of y_train:", y_train.shape)       # Expected: (num_train_samples,)
-    #print("Sample y_train (first target tensor):", y_train[0])  # Prints first target tensor in training set
-    #print("Shape of X_test:", X_test.shape)         # Expected: (num_test_samples, lookback_window, num_features)
-    #print("Sample X_test (first test tensor):", X_test[0])  # Prints first input tensor in testing set
-    #print("Shape of y_test:", y_test.shape)         # Expected: (num_test_samples,)
-    #print("Sample y_test (first target test tensor):", y_test[0])  # Prints first target tensor in testing set
-
     # Create DataLoaders
     train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=1, shuffle=False)
     test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=1, shuffle=False)
@@ -63,7 +54,7 @@ def create_time_series_dataset(data, lookback_window, forecasting_horizon=1, tes
 
 
 class SimpleRNN(nn.Module):
-    def __init__(self, input_size=4, hidden_size=16, output_size=1, num_layers=1):
+    def __init__(self, input_size=4, hidden_size=128, output_size=1, num_layers=3):
         super(SimpleRNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -74,10 +65,15 @@ class SimpleRNN(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
+        # Initialize hidden state
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         
+        # RNN forward pass
         out, _ = self.rnn(x, h0)
         
-        # Take the output from the last time step
-        out = self.fc(out[:, -1, :])
+        # Apply ReLU activation to the last time step's output
+        out = F.relu(out[:, -1, :])
+        
+        # Fully connected layer
+        out = self.fc(out)
         return out
