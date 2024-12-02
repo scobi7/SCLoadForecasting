@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split
 import torch.optim as optim
 import matplotlib.pyplot as plt
 
-
 # Load data
 data_path = '/Users/scobi/Desktop/SCLoadForecasting/combinedDaytonData_fill.csv'
 df = pd.read_csv(data_path, parse_dates=['datetime'])
@@ -24,7 +23,7 @@ data = df.values
 # Parameters
 lookback_window = 5  # Number of time steps to look back
 forecasting_horizon = 1  # Number of time steps to predict ahead
-batch_size = 1
+batch_size = 16  # Adjusted batch size for testing
 num_epochs = 10
 learning_rate = 0.001
 
@@ -32,7 +31,7 @@ learning_rate = 0.001
 train_loader, test_loader = create_time_series_dataset(data, lookback_window, forecasting_horizon)
 
 # Initialize model, loss function, and optimizer
-model = SimpleRNN(input_size=4, hidden_size=16, output_size=1)
+model = SimpleRNN(input_size=4, hidden_size=16, output_size=1, num_layers=1)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -45,8 +44,9 @@ train_losses = []
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
+    print(f"Epoch {epoch+1}/{num_epochs}:")
     
-    for i, (inputs, target) in enumerate(train_loader):
+    for batch_idx, (inputs, target) in enumerate(train_loader):
         inputs, target = inputs.to(device), target.to(device)
         
         # Forward pass
@@ -59,10 +59,13 @@ for epoch in range(num_epochs):
         optimizer.step()
         
         running_loss += loss.item()
+        
+        # Print batch information
+        print(f"Batch {batch_idx+1}/{len(train_loader)}: inputs.shape = {inputs.shape}, target.shape = {target.shape}, loss = {loss.item()}")
     
     avg_loss = running_loss / len(train_loader)
     train_losses.append(avg_loss)
-    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}')
+    print(f"Epoch [{epoch+1}/{num_epochs}], Avg Loss: {avg_loss:.4f}")
 
 # Plot training loss
 plt.plot(train_losses, marker='o')

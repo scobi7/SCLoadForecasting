@@ -14,6 +14,11 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 
+
+from LTSF.layers.Transformer_EncDec import Decoder, DecoderLayer, Encoder, EncoderLayer, ConvLayer
+from LTSF.layers.SelfAttention_Family import ProbAttention, AttentionLayer
+from LTSF.layers.Embed import DataEmbedding, DataEmbedding_wo_pos, DataEmbedding_wo_temp, DataEmbedding_wo_pos_temp
+
 def create_time_series_dataset(data, lookback_window, forecasting_horizon=1, test_size=0.25):
     x_processed = []
     y_processed = []
@@ -43,24 +48,11 @@ def create_time_series_dataset(data, lookback_window, forecasting_horizon=1, tes
     y_train = torch.tensor(y_train, dtype=torch.float32)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     y_test = torch.tensor(y_test, dtype=torch.float32)
-
-    # Print tensor shapes and first tensor samples after splitting
-    #print("Shape of X_train:", X_train.shape)       # Expected: (num_train_samples, lookback_window, num_features)
-    #print("Sample X_train (first tensor):", X_train[0])  # Prints first input tensor in training set
-    #print("Shape of y_train:", y_train.shape)       # Expected: (num_train_samples,)
-    #print("Sample y_train (first target tensor):", y_train[0])  # Prints first target tensor in training set
-    #print("Shape of X_test:", X_test.shape)         # Expected: (num_test_samples, lookback_window, num_features)
-    #print("Sample X_test (first test tensor):", X_test[0])  # Prints first input tensor in testing set
-    #print("Shape of y_test:", y_test.shape)         # Expected: (num_test_samples,)
-    #print("Sample y_test (first target test tensor):", y_test[0])  # Prints first target tensor in testing set
-
     # Create DataLoaders
     train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=1, shuffle=False)
     test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=1, shuffle=False)
 
     return train_loader, test_loader
-
-
 
 class SimpleRNN(nn.Module):
     def __init__(self, input_size=4, hidden_size=16, output_size=1, num_layers=1):
@@ -81,3 +73,60 @@ class SimpleRNN(nn.Module):
         # Take the output from the last time step
         out = self.fc(out[:, -1, :])
         return out
+
+class InformerModel(nn.Module):
+    def __init__(self, configs):
+        super(InformerModel, self).__init__()
+        self.pred_len = configs.pred_len
+        self.output_attention = configs.output_attention
+        self.enc_embedding = DataEmbedding(configs.enc_in, configs.d_model, configs.embed, configs.freq, configs.dropout)
+        self.dec_embedding = DataEmbedding(configs.dec_in, configs.d_model, configs.embed, configs.freq, configs.dropout)
+
+        self.encoder = Encoder(
+            [
+                EncoderLayer(
+                    AttentionLayer(
+                        ProbAttention(False, configs.factor, attention_dropout=configs.dropout, output_attention=configs.output_attention),
+                        configs.d_model, configs.n_heads),
+                    configs.d_model,
+                    configs.d_ff,
+                    dropout=configs.dropout,
+                    activation=configs.activation
+                ) for _ in range(configs.e_layers)
+            ],
+            [
+                ConvLayer(configs.d_model) for _ in range(configs.e_layers - 1)
+            ] if configs.distil else None,
+            norm_layer=torch.nn.LayerNorm(configs.d_model)
+        )
+
+        self.decoder = Decoder(
+            [
+                DecoderLayer(
+                    AttentionLayer(
+                        ProbAttention(True, configs.factor, attention_dropout=configs.dropout, output_attention=False),
+                        configs.d_model, configs.n_heads),
+                    AttentionLayer(
+                        ProbAttention(False, configs.factor, attention_dropout=configs.dropout, output_attention=False),
+                        configs.d_model, configs.n_heads),
+                    configs.d_model,
+                    configs.d_ff,
+                    dropout=configs.dropout,
+                    activation=configs.activation,
+                ) for _ in range(configs.d_layers)
+            ],
+            norm_layer=torch.nn.LayerNorm(configs.d_model),
+            projection=nn.Linear(configs.d_model, configs.c_out, bias=True)
+        )
+
+    def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec,
+                enc_self_mask=None, dec_self_mask=None, dec_enc_mask=None):
+        enc_out = self.enc_embedding(x_enc, x_mark_enc)
+        enc_out, attns = self.encoder(enc_out, attn_mask=enc_self_mask)
+        dec_out = self.dec_embedding(x_dec, x_mark_dec)
+        dec_out = self.decoder(dec_out, enc_out, x_mask=dec_self_mask, cross_mask=dec_enc_mask)
+
+        if self.output_attention:
+            return dec_out[:, -self.pred_len:, :], attns
+        else:
+            return dec_out[:, -self.pred_len:, :]
