@@ -61,7 +61,7 @@ for epoch in range(num_epochs):
         running_loss += loss.item()
         
         # Print batch information
-        print(f"Batch {batch_idx+1}/{len(train_loader)}: inputs.shape = {inputs.shape}, target.shape = {target.shape}, loss = {loss.item()}")
+        #print(f"Batch {batch_idx+1}/{len(train_loader)}: inputs.shape = {inputs.shape}, target.shape = {target.shape}, loss = {loss.item()}")
     
     avg_loss = running_loss / len(train_loader)
     train_losses.append(avg_loss)
