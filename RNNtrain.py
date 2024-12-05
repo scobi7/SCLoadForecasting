@@ -2,12 +2,12 @@ import torch
 import torch.optim as optim
 import torch.nn as nn 
 from torch.utils.data import DataLoader
-from model import SimpleRNN, create_time_series_dataset
-from LoadForecasting import LoadForecastingSNN
+#from LoadForecasting import LoadForecastingSNN
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch.optim as optim
 import matplotlib.pyplot as plt
+from models.RNN import SimpleRNN, create_time_series_dataset
 
 # Load data
 data_path = '/Users/scobi/Desktop/SCLoadForecasting/combinedDaytonData_fill.csv'
