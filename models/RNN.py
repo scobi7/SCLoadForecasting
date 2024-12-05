@@ -7,7 +7,6 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-import torch.nn.functional as F
 from sklearn.model_selection import train_test_split
 
 import numpy as np
@@ -44,15 +43,14 @@ def create_time_series_dataset(data, lookback_window, forecasting_horizon=1, tes
     y_train = torch.tensor(y_train, dtype=torch.float32)
     X_test = torch.tensor(X_test, dtype=torch.float32)
     y_test = torch.tensor(y_test, dtype=torch.float32)
-
     # Create DataLoaders
-    train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=32, shuffle=False)
-    test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=32, shuffle=False)
+    train_loader = DataLoader(TensorDataset(X_train, y_train), batch_size=1, shuffle=False)
+    test_loader = DataLoader(TensorDataset(X_test, y_test), batch_size=1, shuffle=False)
 
     return train_loader, test_loader
 
 class SimpleRNN(nn.Module):
-    def __init__(self, input_size=4, hidden_size=256, output_size=1, num_layers=5):
+    def __init__(self, input_size=4, hidden_size=16, output_size=1, num_layers=1):
         super(SimpleRNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -63,74 +61,10 @@ class SimpleRNN(nn.Module):
         self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        # Initialize hidden state
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         
-        # RNN forward pass
         out, _ = self.rnn(x, h0)
         
-        # Apply ReLU activation to the last time step's output
-        out = F.relu(out[:, -1, :])
-        
-        # Fully connected layer
-        out = self.fc(out)
-        return out
-
-class SimpleLSTM(nn.Module):
-    def __init__(self, input_size=4, hidden_size=128, output_size=1, num_layers=5, dropout=0.2):
-        super(SimpleLSTM, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-
-        # LSTM Layer with Dropout
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout)
-
-        # Batch Normalization
-        self.bn = nn.BatchNorm1d(hidden_size)
-
-        # Fully Connected Layer
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        # Initialize hidden and cell states
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-
-        # LSTM Forward Pass
-        out, _ = self.lstm(x, (h0, c0))
-
-        # Apply Batch Normalization and Activation to Last Time Step's Output
-        out = F.leaky_relu(self.bn(out[:, -1, :]))
-
-        # Fully Connected Layer
-        out = self.fc(out)
-        return out
-    
-class SimpleGRU(nn.Module):
-    def __init__(self, input_size=4, hidden_size=256, output_size=1, num_layers=5, dropout=0.2):
-        super(SimpleGRU, self).__init__()
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-
-        # GRU Layer with Dropout
-        self.gru = nn.GRU(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout)
-
-        # Batch Normalization
-        self.bn = nn.BatchNorm1d(hidden_size)
-
-        # Fully Connected Layer
-        self.fc = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        # Initialize hidden state
-        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
-
-        # GRU Forward Pass
-        out, _ = self.gru(x, h0)
-
-        # Apply Batch Normalization and Activation to Last Time Step's Output
-        out = F.leaky_relu(self.bn(out[:, -1, :]))
-
-        # Fully Connected Layer
-        out = self.fc(out)
+        # Take the output from the last time step
+        out = self.fc(out[:, -1, :])
         return out

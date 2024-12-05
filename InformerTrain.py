@@ -3,9 +3,8 @@ import torch.optim as optim
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from args import Args
-from data_provider import data_provider
-from model import InformerModel
-
+from data_loaders.data_provider import data_provider
+from models.Informer import InformerModel
 # Load arguments
 args = Args()
 args.model_type = 'Informer'
@@ -43,17 +42,21 @@ for epoch in range(args.epochs):
 
         # Forward pass
         outputs = model(batch_x, batch_x_mark, batch_y[:, :args.label_len, :], batch_y_mark[:, :args.label_len, :])
-        #print(f"Batch {batch_idx+1}/{len(train_loader)}") #: outputs.shape = {outputs.shape}
+
+        # Ensure the target matches the output shape
+        if outputs.shape[-1] == 1:  # If the model predicts only one feature
+            target = target[:, :, 0]  # Select the first feature from the target
 
         # Calculate loss
-        loss = criterion(outputs.squeeze(), target.squeeze())
-        #print(f"Batch {batch_idx+1}/{len(train_loader)}: loss = {loss.item()}")
+        loss = criterion(outputs.squeeze(-1) if outputs.shape[-1] == 1 else outputs, target)
 
         # Backward pass
         loss.backward()
         optimizer.step()
 
         running_loss += loss.item()
+
+
 
     avg_loss = running_loss / len(train_loader)
     train_losses.append(avg_loss)
