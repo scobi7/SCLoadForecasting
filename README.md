@@ -4,11 +4,7 @@ SCLoadForecasting is a machine learning project designed to forecast hourly powe
 
 ## Table of Contents
 - [Overview](#overview)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Data Sources](#data-sources)
-- [Contributing](#contributing)
+- [Project Steps](#project-steps)
 
 ## Overview
 
