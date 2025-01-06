@@ -1,3 +1,6 @@
+# Please read LoadForecastingExpploration.pdf in the repository for the full explanation and walk through of this project. 
+
+
 # SCLoadForecasting
 
 SCLoadForecasting is a machine learning project designed to forecast hourly power usage (load) based on weather data for Dayton, Ohio. This project provides a predictive model that can help utilities and energy providers manage demand and optimize grid operations by anticipating load based on weather conditions. I hope to integrate this model into the UCSC microgrid for accurate load forecasting.
